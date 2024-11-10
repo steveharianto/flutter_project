@@ -3,6 +3,7 @@ import '../models/pengajuan.dart';
 import '../services/firebase_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home.dart';
+import 'profile_page.dart';
 
 class StatusPage extends StatelessWidget {
   const StatusPage({super.key});
@@ -139,6 +140,11 @@ class StatusPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const HomePage()),
+            );
+          } else if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
             );
           }
         },

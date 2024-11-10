@@ -86,4 +86,20 @@ class FirebaseService {
       }).toList();
     });
   }
+
+  Future<void> updateUser(UserModel user) async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) throw Exception('User not logged in');
+
+      await _firestore.collection('users').doc(userId).update({
+        'nama': user.nama,
+        'alamat': user.alamat,
+        'nomorTelepon': user.nomorTelepon,
+      });
+    } catch (e) {
+      print('Error updating user: $e');
+      rethrow;
+    }
+  }
 }

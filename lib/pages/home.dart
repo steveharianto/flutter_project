@@ -6,6 +6,7 @@ import '../pages/form_akta_kelahiran_page.dart';
 import '../pages/form_akta_kematian_page.dart';
 import '../pages/form_surat_pindah_page.dart';
 import 'status_page.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -126,6 +127,11 @@ class HomePage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const StatusPage()),
+                );
+              } else if (index == 2) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
                 );
               }
             },
