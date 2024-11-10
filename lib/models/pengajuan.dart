@@ -35,8 +35,8 @@ class PengajuanModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'layanan': layanan.toString(),
-      'status': status.toString(),
+      'layanan': layanan.toString().split('.').last,
+      'status': status.toString().split('.').last,
       'tanggalPengajuan': tanggalPengajuan,
       'nomorReferensi': nomorReferensi,
       'data': data,
@@ -48,10 +48,10 @@ class PengajuanModel {
     return PengajuanModel(
       id: map['id'] ?? '',
       layanan: LayananType.values.firstWhere(
-          (e) => e.toString() == map['layanan'],
+          (e) => e.toString().split('.').last == map['layanan'],
           orElse: () => LayananType.pembuatanKTP),
       status: StatusPengajuan.values.firstWhere(
-          (e) => e.toString() == map['status'],
+          (e) => e.toString().split('.').last == map['status'],
           orElse: () => StatusPengajuan.pending),
       tanggalPengajuan: map['tanggalPengajuan'] ?? '',
       nomorReferensi: map['nomorReferensi'] ?? '',

@@ -43,6 +43,11 @@ class FirebaseService {
   // Pengajuan Operations
   Future<String> createPengajuan(PengajuanModel pengajuan) async {
     try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+
       // Generate nomor referensi
       QuerySnapshot ref = await _firestore.collection('pengajuan').get();
       int number = ref.docs.length + 1;
@@ -50,25 +55,35 @@ class FirebaseService {
 
       DocumentReference docRef = await _firestore.collection('pengajuan').add({
         ...pengajuan.toMap(),
+        'userId': userId,
         'nomorReferensi': nomorReferensi,
         'tanggalPengajuan': DateTime.now().toString().split(' ')[0],
       });
 
       return docRef.id;
     } catch (e) {
+      print('Error creating pengajuan: $e');
       rethrow;
     }
   }
 
   Stream<List<PengajuanModel>> getPengajuanByUser(String userId) {
+    print('Querying for userId: $userId');
+
     return _firestore
         .collection('pengajuan')
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => PengajuanModel.fromMap({...doc.data(), 'id': doc.id}))
-          .toList();
+      print('Number of documents: ${snapshot.docs.length}');
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        print('Document data: $data');
+        return PengajuanModel.fromMap({
+          ...data,
+          'id': doc.id,
+        });
+      }).toList();
     });
   }
 }

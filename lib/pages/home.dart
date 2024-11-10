@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/pengajuan.dart';
 import '../pages/form_ktp_page.dart';
 import '../pages/form_kk_page.dart';
+import '../pages/form_akta_kelahiran_page.dart';
+import '../pages/form_akta_kematian_page.dart';
+import '../pages/form_surat_pindah_page.dart';
+import 'status_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -21,24 +25,22 @@ class HomePage extends StatelessWidget {
         );
         break;
       case LayananType.pembuatanAktaKelahiran:
-        // TODO: Implement Akta Kelahiran form navigation
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Form Akta Kelahiran akan segera tersedia')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const FormAktaKelahiranPage()),
         );
         break;
       case LayananType.pembuatanAktaKematian:
-        // TODO: Implement Akta Kematian form navigation
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Form Akta Kematian akan segera tersedia')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormAktaKematianPage()),
         );
         break;
       case LayananType.pembuatanSuratPindah:
-        // TODO: Implement Surat Pindah form navigation
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Form Surat Pindah akan segera tersedia')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormSuratPindahPage()),
         );
         break;
     }
@@ -119,6 +121,14 @@ class HomePage extends StatelessWidget {
           ),
           BottomNavigationBar(
             currentIndex: 0,
+            onTap: (index) {
+              if (index == 1) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const StatusPage()),
+                );
+              }
+            },
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home),
