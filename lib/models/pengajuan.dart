@@ -14,49 +14,50 @@ enum StatusPengajuan {
 }
 
 class PengajuanModel {
-  final String id;
+  final int? idPengajuan;
+  final int idUser;
   final LayananType layanan;
   final StatusPengajuan status;
   final String tanggalPengajuan;
   final String nomorReferensi;
-  final Map<String, dynamic> data;
-  final String userId;
+  final Map<String, dynamic>? data;
 
   PengajuanModel({
-    required this.id,
+    this.idPengajuan,
+    required this.idUser,
     required this.layanan,
-    required this.status,
+    this.status = StatusPengajuan.pending,
     required this.tanggalPengajuan,
     required this.nomorReferensi,
-    required this.data,
-    required this.userId,
+    this.data,
   });
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'id_pengajuan': idPengajuan,
+      'id_user': idUser,
       'layanan': layanan.toString().split('.').last,
       'status': status.toString().split('.').last,
-      'tanggalPengajuan': tanggalPengajuan,
-      'nomorReferensi': nomorReferensi,
-      'data': data,
-      'userId': userId,
+      'tanggal_pengajuan': tanggalPengajuan,
+      'nomor_referensi': nomorReferensi,
     };
   }
 
   factory PengajuanModel.fromMap(Map<String, dynamic> map) {
     return PengajuanModel(
-      id: map['id'] ?? '',
+      idPengajuan: map['id_pengajuan'],
+      idUser: map['id_user'],
       layanan: LayananType.values.firstWhere(
-          (e) => e.toString().split('.').last == map['layanan'],
-          orElse: () => LayananType.pembuatanKTP),
+        (e) => e.toString().split('.').last == map['layanan'],
+        orElse: () => LayananType.pembuatanKTP,
+      ),
       status: StatusPengajuan.values.firstWhere(
-          (e) => e.toString().split('.').last == map['status'],
-          orElse: () => StatusPengajuan.pending),
-      tanggalPengajuan: map['tanggalPengajuan'] ?? '',
-      nomorReferensi: map['nomorReferensi'] ?? '',
-      data: Map<String, dynamic>.from(map['data'] ?? {}),
-      userId: map['userId'] ?? '',
+        (e) => e.toString().split('.').last == map['status'],
+        orElse: () => StatusPengajuan.pending,
+      ),
+      tanggalPengajuan: map['tanggal_pengajuan'],
+      nomorReferensi: map['nomor_referensi'],
+      data: map['data'],
     );
   }
 }

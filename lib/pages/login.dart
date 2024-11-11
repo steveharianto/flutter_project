@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'register.dart';
-import '../services/firebase_service.dart';
+import '../services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,23 +13,50 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _firebaseService = FirebaseService();
+  final _authService = AuthService();
+  bool _isLoading = false;
 
   Future<void> _login() async {
+    setState(() => _isLoading = true);
+
     try {
-      await _firebaseService.loginUser(
+      final response = await _authService.loginUser(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
 
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+      print('Login Response: $response');
+
+      if (response['success'] == true && response['user'] != null) {
+        // Store user data in SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+
+        print('Storing user_id: ${response['user']['id_user']}');
+
+        await prefs.setInt('user_id', response['user']['id_user']);
+        await prefs.setString('user_name', response['user']['nama']);
+        await prefs.setString('user_email', response['user']['email']);
+
+        // Verify stored data
+        final storedId = prefs.getInt('user_id');
+        print('Stored user_id: $storedId');
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        throw Exception(response['error'] ?? 'Login failed');
       }
     } catch (e) {
+      print('Login Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -80,15 +108,17 @@ class _LoginPageState extends State<LoginPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _login,
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text(
-                    'Login',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Login',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),

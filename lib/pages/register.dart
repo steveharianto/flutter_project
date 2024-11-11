@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_service.dart';
+import '../services/auth_service.dart';
 import '../models/user.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -16,7 +16,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _confirmPasswordController = TextEditingController();
   final _alamatController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _firebaseService = FirebaseService();
+  final _authService = AuthService();
+  bool _isLoading = false;
 
   Future<void> _register() async {
     if (_passwordController.text != _confirmPasswordController.text) {
@@ -26,28 +27,36 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
-      final user = UserModel(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-        nama: _nameController.text.trim(),
-        alamat: _alamatController.text.trim(),
-        nomorTelepon: _phoneController.text.trim(),
+      final result = await _authService.registerUser(
+        _emailController.text,
+        _passwordController.text,
+        _nameController.text,
+        _alamatController.text,
+        _phoneController.text,
       );
 
-      await _firebaseService.registerUser(user);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registrasi berhasil')),
-        );
-        Navigator.pop(context);
+      if (result['success'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Registrasi berhasil')),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        throw Exception(result['error']);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -141,15 +150,17 @@ class _RegisterPageState extends State<RegisterPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _register,
+                  onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text(
-                    'Daftar',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Daftar',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ),
             ],

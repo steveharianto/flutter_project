@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker_web/image_picker_web.dart';
-import '../models/pengajuan.dart';
-import '../services/firebase_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/pengajuan_service.dart';
 
 class FormAktaKematianPage extends StatefulWidget {
   const FormAktaKematianPage({super.key});
@@ -15,6 +15,7 @@ class _FormAktaKematianPageState extends State<FormAktaKematianPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
+  final _pengajuanService = PengajuanService();
   String? _formulirF228Url;
   String? _suratKetKematianUrl;
   String? _suratNikahUrl;
@@ -54,30 +55,37 @@ class _FormAktaKematianPageState extends State<FormAktaKematianPage> {
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      if (_formulirF228Url == null ||
+          _suratKetKematianUrl == null ||
+          _suratNikahUrl == null ||
+          _kkUrl == null ||
+          _ktpAlmUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Semua dokumen harus diunggah')),
+        );
+        return;
+      }
+
+      setState(() => _isLoading = true);
 
       try {
-        final pengajuan = PengajuanModel(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          layanan: LayananType.pembuatanAktaKematian,
-          status: StatusPengajuan.pending,
-          tanggalPengajuan: DateTime.now().toIso8601String(),
-          nomorReferensi: 'REF-${DateTime.now().millisecondsSinceEpoch}',
-          userId: 'current-user-id',
-          data: {
-            'nama': _nameController.text,
-            'alamat': _addressController.text,
-            'formulirF228Url': _formulirF228Url,
-            'suratKetKematianUrl': _suratKetKematianUrl,
-            'suratNikahUrl': _suratNikahUrl,
-            'kkUrl': _kkUrl,
-            'ktpAlmUrl': _ktpAlmUrl,
-          },
-        );
+        final prefs = await SharedPreferences.getInstance();
+        final userId = prefs.getInt('user_id');
 
-        await FirebaseService().createPengajuan(pengajuan);
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
+
+        await _pengajuanService.createPengajuanAktaKematian(
+          userId,
+          _nameController.text,
+          _addressController.text,
+          _formulirF228Url!,
+          _suratKetKematianUrl!,
+          _suratNikahUrl!,
+          _kkUrl!,
+          _ktpAlmUrl!,
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -93,9 +101,9 @@ class _FormAktaKematianPageState extends State<FormAktaKematianPage> {
           );
         }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker_web/image_picker_web.dart';
-import '../models/pengajuan.dart';
-import '../services/firebase_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/pengajuan_service.dart';
 
 class FormSuratPindahPage extends StatefulWidget {
   const FormSuratPindahPage({super.key});
@@ -25,6 +25,7 @@ class _FormSuratPindahPageState extends State<FormSuratPindahPage> {
   bool _isUnder17 = false;
   bool _isMarried = false;
   bool _isLoading = false;
+  final _pengajuanService = PengajuanService();
 
   Future<void> _pickImage(String type) async {
     if (kIsWeb) {
@@ -72,34 +73,54 @@ class _FormSuratPindahPageState extends State<FormSuratPindahPage> {
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      if (_kkUrl == null ||
+          _ktpUrl == null ||
+          _suratPernyataanPindahUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dokumen wajib harus diunggah')),
+        );
+        return;
+      }
+
+      if (_isMarried &&
+          (_suratNikahUrl == null || _suratPersetujuanPasanganUrl == null)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dokumen pernikahan harus diunggah')),
+        );
+        return;
+      }
+
+      if (_isUnder17 && _suratPersetujuanOrtuUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Surat persetujuan orang tua harus diunggah')),
+        );
+        return;
+      }
+
+      setState(() => _isLoading = true);
 
       try {
-        final pengajuan = PengajuanModel(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          layanan: LayananType.pembuatanSuratPindah,
-          status: StatusPengajuan.pending,
-          tanggalPengajuan: DateTime.now().toIso8601String(),
-          nomorReferensi: 'REF-${DateTime.now().millisecondsSinceEpoch}',
-          userId: 'current-user-id',
-          data: {
-            'nama': _nameController.text,
-            'alamat': _addressController.text,
-            'usia': _ageController.text,
-            'isUnder17': _isUnder17,
-            'isMarried': _isMarried,
-            'kkUrl': _kkUrl,
-            'ktpUrl': _ktpUrl,
-            'suratNikahUrl': _suratNikahUrl,
-            'suratPernyataanPindahUrl': _suratPernyataanPindahUrl,
-            'suratPersetujuanOrtuUrl': _suratPersetujuanOrtuUrl,
-            'suratPersetujuanPasanganUrl': _suratPersetujuanPasanganUrl,
-          },
-        );
+        final prefs = await SharedPreferences.getInstance();
+        final userId = prefs.getInt('user_id');
 
-        await FirebaseService().createPengajuan(pengajuan);
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
+
+        await _pengajuanService.createPengajuanSuratPindah(
+          userId,
+          _nameController.text,
+          _addressController.text,
+          int.parse(_ageController.text),
+          _isMarried,
+          _kkUrl!,
+          _ktpUrl!,
+          _suratNikahUrl,
+          _suratPernyataanPindahUrl!,
+          _suratPersetujuanOrtuUrl,
+          _suratPersetujuanPasanganUrl,
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -115,9 +136,9 @@ class _FormSuratPindahPageState extends State<FormSuratPindahPage> {
           );
         }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker_web/image_picker_web.dart';
-import '../models/pengajuan.dart';
-import '../services/firebase_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/pengajuan_service.dart';
 
 class FormKTPPage extends StatefulWidget {
   const FormKTPPage({super.key});
@@ -17,9 +17,10 @@ class _FormKTPPageState extends State<FormKTPPage> {
   final _nikController = TextEditingController();
   final _birthPlaceController = TextEditingController();
   final _addressController = TextEditingController();
+  final _pengajuanService = PengajuanService();
   String? _selectedGender;
   DateTime? _selectedDate;
-  String? _photoUrl;
+  String? _kkUrl;
   bool _isLoading = false;
 
   Future<void> _pickImage() async {
@@ -29,55 +30,39 @@ class _FormKTPPageState extends State<FormKTPPage> {
         final imageData = media.base64;
         if (imageData != null) {
           setState(() {
-            _photoUrl = imageData;
+            _kkUrl = imageData;
           });
         }
       }
     }
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
-
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate() &&
         _selectedGender != null &&
-        _selectedDate != null) {
-      setState(() {
-        _isLoading = true;
-      });
+        _selectedDate != null &&
+        _kkUrl != null) {
+      setState(() => _isLoading = true);
 
       try {
-        final pengajuan = PengajuanModel(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          layanan: LayananType.pembuatanKTP,
-          status: StatusPengajuan.pending,
-          tanggalPengajuan: DateTime.now().toIso8601String(),
-          nomorReferensi: 'REF-${DateTime.now().millisecondsSinceEpoch}',
-          userId: 'current-user-id',
-          data: {
-            'nama': _nameController.text,
-            'nik': _nikController.text,
-            'tempatLahir': _birthPlaceController.text,
-            'tanggalLahir': _selectedDate!.toIso8601String(),
-            'jenisKelamin': _selectedGender,
-            'alamat': _addressController.text,
-            'photoUrl': _photoUrl,
-          },
-        );
+        // Get user ID from SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final userId = prefs.getInt('user_id');
 
-        await FirebaseService().createPengajuan(pengajuan);
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
+
+        await _pengajuanService.createPengajuanKTP(
+          userId,
+          _nikController.text,
+          _nameController.text,
+          _selectedDate!,
+          _selectedGender!,
+          _addressController.text,
+          _birthPlaceController.text,
+          _kkUrl!,
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -92,10 +77,28 @@ class _FormKTPPageState extends State<FormKTPPage> {
           );
         }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mohon lengkapi semua data')),
+      );
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
     }
   }
 
@@ -215,7 +218,7 @@ class _FormKTPPageState extends State<FormKTPPage> {
                 },
               ),
               const SizedBox(height: 16),
-              const Text('Silahkan Unggah Foto',
+              const Text('Silahkan Unggah Kartu Keluarga (KK)',
                   style: TextStyle(fontSize: 14, color: Colors.black87)),
               const SizedBox(height: 8),
               InkWell(
@@ -232,8 +235,8 @@ class _FormKTPPageState extends State<FormKTPPage> {
                       const Icon(Icons.camera_alt_outlined, color: Colors.grey),
                       const SizedBox(height: 8),
                       Text(
-                        _photoUrl != null
-                            ? 'Foto telah dipilih'
+                        _kkUrl != null
+                            ? 'File telah dipilih'
                             : 'Tap Untuk Mengunggah',
                         style: const TextStyle(color: Colors.grey),
                       ),
